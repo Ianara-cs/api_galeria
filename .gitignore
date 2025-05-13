@@ -1,0 +1,21 @@
+# Ignora o ambiente virtual
+venv/
+
+# Arquivos Python compilados
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Banco de dados SQLite (caso esteja usando)
+db.sqlite3
+
+# Arquivos temporários e logs
+*.log
+
+# Configs do VSCode ou IDEs
+.vscode/
+*.idea/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
