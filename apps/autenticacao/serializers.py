@@ -8,9 +8,10 @@ class AdminCreateUserSerializer(ModelSerializer):
     """
     Serializer utilizado para se criar e atualizar dados de um usuário
     """
-    
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False)
+
     class Meta:
+        model = User
         fields = [
             "password",
             "username",
@@ -20,19 +21,24 @@ class AdminCreateUserSerializer(ModelSerializer):
             "is_staff",
             "is_active",
         ]
-        model = User
-        
+
     def validate_email(self, email):
-        if User.objects.filter(email=email).exists():
+        user_qs = User.objects.filter(email=email)
+        if self.instance:
+            user_qs = user_qs.exclude(pk=self.instance.pk)  # ignora o próprio usuário
+        if user_qs.exists():
             raise serializers.ValidationError("Este e-mail já está em uso.")
         return email
-        
-    def validate_password(self, data):
-        password_validation.validate_password(data, self.instance)
-        data = make_password(data)
-        return data
-    
+
+    def validate_password(self, password):
+        password_validation.validate_password(password, self.instance)
+        return make_password(password)
+
     def create(self, validated_data):
+        if 'password' in validated_data:
+            validated_data['password'] = self.validate_password(validated_data['password'])
+        else:
+            raise serializers.ValidationError({"password": "Senha é obrigatória para criação de usuário."})
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
