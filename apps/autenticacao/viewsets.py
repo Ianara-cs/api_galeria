@@ -6,16 +6,22 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 from apps.autenticacao.serializers import AdminCreateUserSerializer, ListUserSerializer
 from common.permissions import IsAdminUser
+from common.pagination import CustomQueryPagination
+from .filters import UsuarioFilters
 
 class UsuarioViewSet(
     mixins.ListModelMixin,
     mixins.UpdateModelMixin,
     mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
     GenericViewSet
 ):
     queryset = User.objects.all()
     serializer_class = ListUserSerializer
     permission_classes = [IsAdminUser]
+    filterset_class = UsuarioFilters
+    pagination_class = CustomQueryPagination
+    
     
     def get_serializer_class(self):
         """
