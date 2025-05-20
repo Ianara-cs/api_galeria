@@ -23,4 +23,4 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 
 # Etapa 8: executa as migrações e inicializa o servidor
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn api_galeria.wsgi:application --bind 0.0.0.0:$PORT"]
