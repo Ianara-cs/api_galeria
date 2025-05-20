@@ -42,6 +42,11 @@ class AdminCreateUserSerializer(ModelSerializer):
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        request_user = self.context['request'].user
+        
+        if instance.is_superuser and not request_user.is_superuser:
+            raise serializers.ValidationError("Você não tem permissão para editar um superusuário.")
+
         if 'password' in validated_data:
             validated_data['password'] = self.validate_password(validated_data['password'])
         return super().update(instance, validated_data)
