@@ -6,15 +6,28 @@ class FotoSerializer(serializers.ModelSerializer):
     Serializer para o model Foto
     """
     curtido = serializers.SerializerMethodField()
+    quantidade_curtidas = serializers.SerializerMethodField()
     
     class Meta:
         model = Foto
-        fields = ['id', 'imagem', 'descricao', 'usuario_id', 'aprovada', 'data_envio', 'curtido']
+        fields = [
+            'id', 
+            'imagem', 
+            'imagem_url', 
+            'descricao', 
+            'usuario_id', 
+            'aprovada', 
+            'data_envio', 
+            'curtido', 
+            'quantidade_curtidas']
         read_only_fields = ['aprovada', 'usuario_id', 'data_envio']
         
     def get_curtido(self, obj):
         user = self.context['request'].user
         return obj.curtida_set.filter(usuario_id=user).exists()
+    
+    def get_quantidade_curtidas(self, obj):
+        return obj.curtida_set.filter(foto_id=obj).count()
 
     def create(self, validated_data):
         validated_data['usuario_id'] = self.context['request'].user

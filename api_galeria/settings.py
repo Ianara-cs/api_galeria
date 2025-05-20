@@ -1,21 +1,28 @@
 from pathlib import Path
 from datetime import timedelta
+import firebase_admin
+from firebase_admin import credentials
+from dj_database_url import config
 import os
+import environ
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env()
+env.read_env(os.path.join(BASE_DIR, '.env'), overwrite=True)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#*val4^8qzs1$5y2xx8f9m4%qjwa^a7w9kyu1uku-h=r31orxy'
+SECRET_KEY = env.get_value('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.get_value('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost"])
 
 
 # Application definition
@@ -78,12 +85,35 @@ WSGI_APPLICATION = 'api_galeria.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
+"""DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env.get_value('POSTGRES_DB'),
+        'USER': env.get_value('POSTGRES_USER'),
+        'PASSWORD': env.get_value('POSTGRES_PASSWORD'),
+        'HOST': env.get_value('POSTGRES_HOST'),
+        'PORT': env.get_value('POSTGRES_PORT'),
     }
-}
+}"""
+
+if env('DEBUG'):
+    DATABASES = {
+        env('DB_ALIAS'): {
+            'ENGINE': env('DB_ENGINE'),
+            'NAME': env('DB_NAME'),
+            'USER': env("DB_USER"),
+            'PASSWORD': env("DB_PASSWORD"),
+            'HOST': env("DB_HOST"),
+        },
+    }
+else:
+    DATABASES = {
+        'default': config(
+            default=env.get_value('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=False  # deixe False localmente, True na Railway
+        )
+    }
 
 
 # Password validation
@@ -149,3 +179,31 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+USE_FIREBASE_STORAGE = env.get_value('USE_FIREBASE_STORAGE')
+
+#FIREBASE
+FIREBASE_BUCKET_NAME = env.get_value('BUCKET_NAME')
+FIREBASE_JSON = env.get_value('FIREBASE_CREDENTIAL_JSON')
+
+
+firebase_dict = {
+    "type": env.get_value("FIREBASE_TYPE"),
+    "project_id": env.get_value("FIREBASE_PROJECT_ID"),
+    "private_key_id": env.get_value("FIREBASE_PRIVATE_KEY_ID"),
+    "private_key": env.get_value("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+    "client_email": env.get_value("FIREBASE_CLIENT_EMAIL"),
+    "client_id": env.get_value("FIREBASE_CLIENT_ID"),
+    "auth_uri": env.get_value("FIREBASE_AUTH_URI"),
+    "token_uri": env.get_value("FIREBASE_TOKEN_URI"),
+    "auth_provider_x509_cert_url": env.get_value("FIREBASE_AUTH_PROVIDER_CERT_URL"),
+    "client_x509_cert_url": env.get_value("FIREBASE_CLIENT_CERT_URL"),
+    "universe_domain": env.get_value("FIREBASE_UNIVERSE_DOMAIN"),
+}
+
+# Inicializar Firebase
+if USE_FIREBASE_STORAGE and not firebase_admin._apps:
+    cred = credentials.Certificate(firebase_dict)
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': FIREBASE_BUCKET_NAME
+    })

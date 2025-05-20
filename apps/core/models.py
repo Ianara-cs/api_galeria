@@ -2,7 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Foto(models.Model):
-    imagem = models.ImageField(upload_to='fotos/')
+    imagem = models.ImageField(upload_to='fotos/', blank=True, null=True)
+    imagem_url = models.CharField(max_length=255, blank=True, null=True)
     descricao = models.TextField(blank=True)
     usuario_id = models.ForeignKey(User, on_delete=models.PROTECT, related_name='fotos')
     aprovada = models.BooleanField(default=False)

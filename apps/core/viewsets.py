@@ -8,6 +8,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
+from django.conf import settings
+import uuid
+from firebase_admin import storage
 
 class FotoViewSet(
     mixins.CreateModelMixin,
@@ -62,18 +65,38 @@ class FotoViewSet(
 
         fotos_criadas = []
 
-        with transaction.atomic():
-            for imagem in imagens:
-                serializer = self.get_serializer(
-                    data={
-                        'imagem': imagem,
-                        'descricao': descricao,
-                    },
-                    context={'request': request}
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                fotos_criadas.append(serializer.data)
+        if settings.USE_FIREBASE_STORAGE:
+            # Firebase: produção
+            bucket = storage.bucket(settings.FIREBASE_BUCKET_NAME)
+
+            with transaction.atomic():
+                for imagem in imagens:
+                    filename = f"{uuid.uuid4()}_{imagem.name}"
+                    blob = bucket.blob(f'fotos/{filename}')
+                    blob.upload_from_file(imagem, content_type=imagem.content_type)
+                    blob.make_public()
+
+                    foto = Foto.objects.create(
+                        imagem_url=blob.public_url,
+                        descricao=descricao,
+                        usuario_id=request.user
+                    )
+                    fotos_criadas.append(FotoSerializer(foto, context={'request': request}).data)
+
+        else:
+            # Local: desenvolvimento
+            with transaction.atomic():
+                for imagem in imagens:
+                    serializer = self.get_serializer(
+                        data={
+                            'imagem': imagem,
+                            'descricao': descricao
+                        },
+                        context={'request': request}
+                    )
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(usuario_id=request.user)
+                    fotos_criadas.append(serializer.data)
 
         return Response(fotos_criadas, status=status.HTTP_201_CREATED)
 
