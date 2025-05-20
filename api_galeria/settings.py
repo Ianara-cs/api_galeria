@@ -101,7 +101,7 @@ else:
         'default': config(
             default=env.get_value('DATABASE_URL'),
             conn_max_age=600,
-            ssl_require=False  # deixe False localmente, True na Railway
+            ssl_require=env.get_value('SSL_REQUIRE')  # deixe False localmente, True na Railway
         )
     }
 
