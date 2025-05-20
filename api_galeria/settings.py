@@ -2,7 +2,7 @@ from pathlib import Path
 from datetime import timedelta
 import firebase_admin
 from firebase_admin import credentials
-from dj_database_url import config
+import dj_database_url 
 import os
 import environ
 
@@ -20,7 +20,7 @@ env.read_env(os.path.join(BASE_DIR, '.env'), overwrite=True)
 SECRET_KEY = env.get_value('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.get_value('DEBUG')
+DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost"])
 
@@ -98,10 +98,10 @@ if env('DEBUG'):
     }
 else:
     DATABASES = {
-        'default': config(
-            default=env.get_value('DATABASE_URL'),
+        'default': dj_database_url.parse(
+            env.get_value('DATABASE_URL'),
             conn_max_age=600,
-            ssl_require=env.get_value('SSL_REQUIRE')  # deixe False localmente, True na Railway
+            ssl_require=env.get_value('SSL_REQUIRE', default=True, cast=bool)
         )
     }
 
