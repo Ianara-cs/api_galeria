@@ -1,13 +1,13 @@
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Foto, Curtida, Comentario
-from .filters import ComentarioFilters
+from .filters import ComentarioFilters, FotosFilters
 from .serializers import FotoSerializer, CurtidaSerializer, ComentarioSerializer
 from common.permissions import IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
+from django.db import transaction
 
 class FotoViewSet(
     mixins.CreateModelMixin,
@@ -17,6 +17,7 @@ class FotoViewSet(
 ):
     queryset = Foto.objects.all().order_by('-data_envio')
     serializer_class = FotoSerializer
+    filterset_class = FotosFilters
 
     def get_permissions(self):
         if self.action in ['aprovar', 'reprovar']:
@@ -24,27 +25,58 @@ class FotoViewSet(
         return [IsAuthenticated()]
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         user = self.request.user
         if user.is_staff:
-            return Foto.objects.all().order_by('-data_envio')
+            return queryset
         return Foto.objects.filter(aprovada=True).order_by('-data_envio')
 
     def perform_create(self, serializer):
         serializer.save(usuario_id=self.request.user)
+        
+    def _set_aprovada(self, aprovada: bool):
+        foto = self.get_object()
+        foto.aprovada = aprovada
+        foto.save()
+        return Response({'status': f'foto {"aprovada" if aprovada else "reprovada"}'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdminUser])
     def aprovar(self, request, pk=None):
-        foto = self.get_object()
-        foto.aprovada = True
-        foto.save()
-        return Response({'status': 'foto aprovada'}, status=status.HTTP_200_OK)
+        return self._set_aprovada(True)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdminUser])
     def reprovar(self, request, pk=None):
-        foto = self.get_object()
-        foto.aprovada = False
-        foto.save()
-        return Response({'status': 'foto reprovada'}, status=status.HTTP_200_OK)
+        return self._set_aprovada(False)
+    
+    
+    @action(detail=False, methods=['post'], url_path='upload-multiplas')
+    def upload_multiplas(self, request):
+        """
+            Multiplos Uploados de fotos
+        """
+        imagens = request.FILES.getlist('imagens')
+        descricao = request.data.get('descricao', '')
+
+        if not imagens:
+            return Response({'erro': 'Nenhuma imagem enviada.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        fotos_criadas = []
+
+        with transaction.atomic():
+            for imagem in imagens:
+                serializer = self.get_serializer(
+                    data={
+                        'imagem': imagem,
+                        'descricao': descricao,
+                    },
+                    context={'request': request}
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                fotos_criadas.append(serializer.data)
+
+        return Response(fotos_criadas, status=status.HTTP_201_CREATED)
+
 
 class CurtidaViewSet(
     mixins.CreateModelMixin,

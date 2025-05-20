@@ -68,3 +68,16 @@ class ComentarioSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['usuario_id'] = self.context['request'].user
         return super().create(validated_data)
+    
+    def to_representation(self, instance):
+        """
+        Este método permite customizar o retorno ao usuário
+        """
+        retorno = super().to_representation(instance)
+        retorno.pop('usuario_id')
+        retorno['usuario'] = {
+            "id": instance.usuario_id.id,
+            "username": instance.usuario_id.username,
+            "nome": instance.usuario_id.first_name
+        }
+        return retorno
