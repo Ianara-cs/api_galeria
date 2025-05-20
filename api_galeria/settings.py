@@ -85,16 +85,6 @@ WSGI_APPLICATION = 'api_galeria.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-"""DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env.get_value('POSTGRES_DB'),
-        'USER': env.get_value('POSTGRES_USER'),
-        'PASSWORD': env.get_value('POSTGRES_PASSWORD'),
-        'HOST': env.get_value('POSTGRES_HOST'),
-        'PORT': env.get_value('POSTGRES_PORT'),
-    }
-}"""
 
 if env('DEBUG'):
     DATABASES = {
@@ -184,8 +174,6 @@ USE_FIREBASE_STORAGE = env.get_value('USE_FIREBASE_STORAGE')
 
 #FIREBASE
 FIREBASE_BUCKET_NAME = env.get_value('BUCKET_NAME')
-FIREBASE_JSON = env.get_value('FIREBASE_CREDENTIAL_JSON')
-
 
 firebase_dict = {
     "type": env.get_value("FIREBASE_TYPE"),
