@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'api_galeria.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-if env('DEBUG'):
+if env.bool('DEBUG'):
     DATABASES = {
         env('DB_ALIAS'): {
             'ENGINE': env('DB_ENGINE'),
@@ -101,7 +101,7 @@ else:
         'default': dj_database_url.parse(
             env.get_value('DATABASE_URL'),
             conn_max_age=600,
-            ssl_require=env.get_value('SSL_REQUIRE', default=True, cast=bool)
+            ssl_require=env.bool('SSL_REQUIRE', default=True)
         )
     }
 
