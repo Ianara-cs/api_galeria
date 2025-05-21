@@ -2,8 +2,7 @@ from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.auth import password_validation
-from django.contrib.auth.hashers import make_password
-    
+
 class AdminCreateUserSerializer(ModelSerializer):
     """
     Serializer utilizado para se criar e atualizar dados de um usuário
@@ -31,15 +30,20 @@ class AdminCreateUserSerializer(ModelSerializer):
         return email
 
     def validate_password(self, password):
-        password_validation.validate_password(password, self.instance)
-        return make_password(password)
+        user = self.instance or User()
+        password_validation.validate_password(password, user)
+        return password 
 
     def create(self, validated_data):
-        if 'password' in validated_data:
-            validated_data['password'] = self.validate_password(validated_data['password'])
+        password = validated_data.pop("password", None)
+        user = User(**validated_data)
+        if password:
+            password = self.validate_password(password)
+            user.set_password(password)
         else:
             raise serializers.ValidationError({"password": "Senha é obrigatória para criação de usuário."})
-        return super().create(validated_data)
+        user.save()
+        return user
 
     def update(self, instance, validated_data):
         request_user = self.context['request'].user
@@ -47,9 +51,12 @@ class AdminCreateUserSerializer(ModelSerializer):
         if instance.is_superuser and not request_user.is_superuser:
             raise serializers.ValidationError("Você não tem permissão para editar um superusuário.")
 
-        if 'password' in validated_data:
-            validated_data['password'] = self.validate_password(validated_data['password'])
+        password = validated_data.pop("password", None)
+        if password:
+            password = self.validate_password(password)
+            instance.set_password(password)  
         return super().update(instance, validated_data)
+
 
 class ListUserSerializer(ModelSerializer):
     """
