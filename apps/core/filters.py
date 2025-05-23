@@ -8,11 +8,13 @@ class FotosFilters(FilterSet):
     através dos campos informados.
     """
     foto_id = NumberFilter(field_name='foto_id', lookup_expr='exact', label='ID da foto', )
+    usuario_id = NumberFilter(field_name='usuario_id__id', lookup_expr='exact', label='ID do usuário', )
     aprovada = BooleanFilter(field_name='aprovada', lookup_expr='exact', label='Foto aprovada', )
 
     class Meta:
         fields = [
             'foto_id',
+            'usuario_id',
             'aprovada', 
         ]
         model = Foto
