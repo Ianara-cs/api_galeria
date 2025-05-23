@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Foto, Curtida, Comentario
 from .filters import ComentarioFilters, FotosFilters
 from .serializers import FotoSerializer, CurtidaSerializer, ComentarioSerializer
-from common.permissions import IsAdminUser
+from common.permissions import IsAdminUser, IsOwnerOrReadOnly
+from common.pagination import CustomQueryPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
@@ -21,6 +22,7 @@ class FotoViewSet(
     queryset = Foto.objects.all().order_by('-data_envio')
     serializer_class = FotoSerializer
     filterset_class = FotosFilters
+    pagination_class = CustomQueryPagination
 
     def get_permissions(self):
         if self.action in ['aprovar', 'reprovar']:
@@ -126,16 +128,20 @@ class CurtidaViewSet(
 class ComentarioViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = Comentario.objects.filter(foto_id__aprovada=True).order_by('-data_criacao')
     serializer_class = ComentarioSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     filterset_class = ComentarioFilters
 
     def get_queryset(self):
         queryset = super().get_queryset()
         user = self.request.user
+        if self.action in ['update', 'partial_update']:
+            return queryset.filter(usuario_id=user)
         if user.is_staff:
             return Comentario.objects.all().order_by('-data_criacao')
         return queryset

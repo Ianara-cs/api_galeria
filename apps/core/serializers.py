@@ -82,6 +82,11 @@ class ComentarioSerializer(serializers.ModelSerializer):
         validated_data['usuario_id'] = self.context['request'].user
         return super().create(validated_data)
     
+    def update(self, instance, validated_data):
+        instance.texto = validated_data.get('texto', instance.texto)
+        instance.save()
+        return instance
+    
     def to_representation(self, instance):
         """
         Este método permite customizar o retorno ao usuário
