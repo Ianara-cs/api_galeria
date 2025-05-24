@@ -5,6 +5,7 @@ from .filters import ComentarioFilters, FotosFilters
 from .serializers import FotoSerializer, CurtidaSerializer, ComentarioSerializer
 from common.permissions import IsAdminUser, IsOwnerOrReadOnly
 from common.pagination import CustomQueryPagination
+from common.storage import upload_imagem_firebase
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
@@ -69,17 +70,11 @@ class FotoViewSet(
 
         if settings.USE_FIREBASE_STORAGE:
             # Firebase: produção
-            bucket = storage.bucket(settings.FIREBASE_BUCKET_NAME)
-
             with transaction.atomic():
                 for imagem in imagens:
-                    filename = f"{uuid.uuid4()}_{imagem.name}"
-                    blob = bucket.blob(f'fotos/{filename}')
-                    blob.upload_from_file(imagem, content_type=imagem.content_type)
-                    blob.make_public()
-
+                    imagem_url = upload_imagem_firebase(imagem, settings.FIREBASE_BUCKET_NAME)
                     foto = Foto.objects.create(
-                        imagem_url=blob.public_url,
+                        imagem_url=imagem_url,
                         descricao=descricao,
                         usuario_id=request.user
                     )
